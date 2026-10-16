@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моят AI от нулата</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1e3a8a; text-align: center; }
+        button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 12px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1d4ed8; }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        th { background-color: #f8fafc; color: #475569; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Невронна мрежа (XOR) от нулата</h1>
+    <p style="text-align: center;">Този изкуствен интелект учи логическата функция XOR директно във вашия браузър.</p>
+    
+    <button id="trainBtn" onclick="startTraining()">Обучи AI</button>
+
+    <div class="stats">
+        <div>Епоха: <span id="epochText">0</span></div>
+        <div>Грешка (Loss): <span id="lossText">-</span></div>
+    </div>
+
+    <h3>Резултати в реално време:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Вход 1</th>
+                <th>Вход 2</th>
+                <th>Желан Резултат</th>
+                <th>Предсказание на AI</th>
+            </tr>
+        </thead>
+        <tbody id="resultsTable">
+            <tr><td>0</td><td>0</td><td>0</td><td id="res0">-</td></tr>
+            <tr><td>0</td><td>1</td><td>1</td><td id="res1">-</td></tr>
+            <tr><td>1</td><td>0</td><td>1</td><td id="res2">-</td></tr>
+            <tr><td>1</td><td>1</td><td>0</td><td id="res3">-</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+// --- МАТЕМАТИЧЕСКИ ФУНКЦИИ ---
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+function sigmoidDerivative(x) { return x * (1 - x); }
+
+// --- ДАННИ (XOR) ---
+const X = [[0,0], [0,1], [1,0], [1,1]];
+const y = [[0], [1], [1], [0]];
+
+// --- АРХИТЕКТУРА ---
+let weightsHidden = [[Math.random(), Math.random(), Math.random()], [Math.random(), Math.random(), Math.random()]];
+let biasHidden =;
+let weightsOutput = [[Math.random()], [Math.random()], [Math.random()]];
+let biasOutput =;
+
+const learningRate = 0.1;
+let epoch = 0;
+
+function trainStep() {
+    let totalLoss = 0;
+    let currentOutputs = [];
+
+    // Преминаваме през всеки пример (за простота един по един)
+    for (let i = 0; i < X.length; i++) {
+        let inputs = X[i];
+        
+        // 1. Forward Propagation (Скрит слой)
+        let hiddenOutputs = [];
+        for (let j = 0; j < 3; j++) {
+            let activation = inputs[0] * weightsHidden[0][j] + inputs[1] * weightsHidden[1][j] + biasHidden[j];
+            hiddenOutputs.push(sigmoid(activation));
+        }
+
+        // Forward Propagation (Изходен слой)
+        let outputActivation = hiddenOutputs[0] * weightsOutput[0][0] + hiddenOutputs[1] * weightsOutput[1][0] + hiddenOutputs[2] * weightsOutput[2][0] + biasOutput[0];
+        let predictedOutput = sigmoid(outputActivation);
+        currentOutputs.push(predictedOutput);
+
+        // Изчисляване на грешката
+        let error = y[i][0] - predictedOutput;
+        totalLoss += Math.pow(error, 2);
+
+        // 2. Backward Propagation
+        let dOutput = error * sigmoidDerivative(predictedOutput);
+
+        let dHidden = [];
+        for (let j = 0; j < 3; j++) {
+            dHidden.push(dOutput * weightsOutput[j][0] * sigmoidDerivative(hiddenOutputs[j]));
+        }
+
+        // 3. Обновяване на теглата (Gradient Descent)
+        for (let j = 0; j < 3; j++) {
+            weightsOutput[j][0] += hiddenOutputs[j] * dOutput * learningRate;
+            weightsHidden[0][j] += inputs[0] * dHidden[j] * learningRate;
+            weightsHidden[1][j] += inputs[1] * dHidden[j] * learningRate;
+            biasHidden[j] += dHidden[j] * learningRate;
+        }
+        biasOutput[0] += dOutput * learningRate;
+    }
+
+    // Обновяване на уеб страницата с новите данни
+    document.getElementById('epochText').innerText = epoch;
+    document.getElementById('lossText').innerText = (totalLoss / 4).toFixed(5);
+    
+    for(let i=0; i<4; i++) {
+        document.getElementById(`res${i}`).innerText = currentOutputs[i].toFixed(4);
+    }
+}
+
+function startTraining() {
+    document.getElementById('trainBtn').disabled = true;
+    document.getElementById('trainBtn').innerText = "Обучава се...";
+    
+    // Пускаме цикъл, който тренира мрежата на интервали, за да виждаме промяната
+    let interval = setInterval(() => {
+        for(let i = 0; i < 100; i++) { // Правим по 100 стъпки наведнъж за бързина
+            trainStep();
+            epoch++;
+        }
+        
+        if (epoch >= 20000) {
+            clearInterval(interval);
+            document.getElementById('trainBtn').innerText = "Обучението завърши!";
+        }
+    }, 10);
+}
+</script>
+
+</body>
+</html>
